@@ -62,8 +62,15 @@ function renderProducts(){
   el('activeProductCount').textContent=`販売中 ${active.length}品`;
   const makeSpacer=()=>{const s=document.createElement('div');s.className='product-spacer';s.setAttribute('aria-hidden','true');g.appendChild(s)};
   const appendProduct=p=>{const b=document.createElement('button');b.className='product-btn';b.disabled=p.price<=0;b.innerHTML=`<div class="name">${escapeHtml(p.name)}</div><div class="meta"><span class="cat">${escapeHtml(p.category||'')}</span><span class="price">${p.price>0?fmt(p.price):'価格未設定'}</span></div>`;b.onclick=()=>addToCart(p.id);g.appendChild(b)};
-  const cats=[];
-  active.forEach(p=>{const cat=p.category||'その他';let group=cats.find(x=>x.cat===cat);if(!group){group={cat,items:[]};cats.push(group)}group.items.push(p)});
+  // レジ画面はカテゴリー順を固定。商品管理の order は各カテゴリー内の順番として使う。
+  const cats=CATEGORY_ORDER.map(cat=>({
+    cat,
+    items:active.filter(p=>(p.category||'その他')===cat).sort((a,b)=>(a.order||0)-(b.order||0))
+  })).filter(group=>group.items.length);
+  // 未知のカテゴリーがあれば最後に表示。
+  const known=new Set(CATEGORY_ORDER);
+  const extraCats=[...new Set(active.map(p=>p.category||'その他').filter(cat=>!known.has(cat)))];
+  extraCats.forEach(cat=>cats.push({cat,items:active.filter(p=>(p.category||'その他')===cat).sort((a,b)=>(a.order||0)-(b.order||0))}));
   let cell=0;
   cats.forEach(group=>{
     while(cell%3!==0){makeSpacer();cell++}
