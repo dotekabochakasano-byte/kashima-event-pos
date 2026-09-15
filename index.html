@@ -9,7 +9,9 @@
   <meta name="apple-mobile-web-app-title" content="イベントレジ" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=11" />
+  <link rel="apple-touch-icon-precomposed" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css?v=12" />
   <title>鹿嶋まつり イベントレジ</title>
 </head>
 <body>
@@ -151,6 +153,14 @@
     <form method="dialog" class="dialog-card" id="adminFormShell">
       <div class="dialog-head"><h2>商品管理</h2><button value="close" class="icon-btn" aria-label="閉じる">×</button></div>
       <p class="muted">販売済みの商品は履歴保護のため完全削除せず「販売停止」にします。</p>
+      <div class="admin-sort-tools">
+        <div>
+          <strong>商品の並び順</strong>
+          <small>この順番がレジ画面の商品ボタンに反映されます。</small>
+        </div>
+        <button id="sortByCategory" type="button" class="secondary">カテゴリー順に整列</button>
+      </div>
+      <div class="category-order-hint">カテゴリー順：<strong>フード → ドリンク → ジェラート → その他</strong></div>
       <div id="adminList" class="admin-list"></div>
       <hr />
       <h3>商品を追加</h3>
@@ -200,6 +210,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
