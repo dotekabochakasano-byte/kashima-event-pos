@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="イベントレジ" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css?v=11" />
+  <title>鹿嶋まつり イベントレジ</title>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>鹿嶋まつり イベントレジ</h1>
+      <div class="subline"><span id="offlineBadge" class="badge">オフライン対応</span><span id="clock"></span></div>
+    </div>
+    <div class="header-actions">
+      <button id="showRegister" class="nav-btn active" type="button">レジ</button>
+      <button id="showFulfillment" class="nav-btn" type="button">受け渡し <span id="pendingBadge" class="count-badge">0</span></button>
+      <select id="eventDay" aria-label="日付区分">
+        <option value="1">1日目</option>
+        <option value="2">2日目</option>
+      </select>
+      <button id="openAdmin" class="secondary">商品管理</button>
+    </div>
+  </header>
+
+  <main id="registerView" class="layout view active-view">
+    <section class="panel products-panel">
+      <div class="panel-title-row">
+        <h2>商品</h2>
+        <span id="activeProductCount" class="muted"></span>
+      </div>
+      <div id="productGrid" class="product-grid"></div>
+    </section>
+
+    <section class="panel cart-panel">
+      <div class="panel-title-row"><h2>会計</h2><button id="clearCart" class="ghost danger">カート取消</button></div>
+      <div id="cartEmpty" class="empty">商品をタップしてください</div>
+      <div id="cartList" class="cart-list"></div>
+      <div class="totals">
+        <div><span>点数</span><strong id="itemCount">0点</strong></div>
+        <div class="grand"><span>合計</span><strong id="grandTotal">¥0</strong></div>
+      </div>
+      <div class="payment-box">
+        <div class="payment-title-row">
+          <div class="payment-title">支払方法</div>
+          <div class="selected-payment-display">選択中：<strong id="currentPaymentDisplay">現金</strong></div>
+        </div>
+        <div id="paymentMethods" class="payment-methods" role="group" aria-label="支払方法">
+          <button type="button" class="payment-method active" data-payment="cash" aria-pressed="true">現金</button>
+          <button type="button" class="payment-method" data-payment="paypay" aria-pressed="false">PayPay</button>
+          <button type="button" class="payment-method" data-payment="rakutenpay" aria-pressed="false">楽天ペイ</button>
+          <button type="button" class="payment-method" data-payment="dbarai" aria-pressed="false">d払い</button>
+          <button type="button" class="payment-method" data-payment="aupay" aria-pressed="false">au PAY</button>
+          <button type="button" class="payment-method" data-payment="credit" aria-pressed="false">クレジットカード</button>
+        </div>
+        <div id="cashPaymentArea">
+          <label>お預かり金
+            <input id="tendered" type="text" readonly aria-readonly="true" placeholder="タップして金額入力" />
+          </label>
+          <div class="quick-cash" id="quickCash"></div>
+          <div class="change-row"><span>お釣り</span><strong id="change">¥0</strong></div>
+        </div>
+        <div id="cashlessPaymentArea" class="cashless-note" hidden>
+          <strong id="selectedPaymentLabel">キャッシュレス決済</strong>
+          <span>決済端末・決済アプリ側で支払い完了を確認してから「会計完了」を押してください。</span>
+        </div>
+        <div id="checkoutStatus" class="checkout-status muted-state">商品を選択してください</div>
+        <button type="button" id="checkout" class="primary checkout" aria-disabled="true" data-ready="0" onclick="window.__kashimaCheckout && window.__kashimaCheckout(event)">会計完了</button>
+      </div>
+    </section>
+
+    <section class="panel stats-panel">
+      <div class="panel-title-row"><h2>本日の状況</h2><button id="refreshStats" class="ghost">更新</button></div>
+      <div class="stat-cards">
+        <div class="stat"><span>売上</span><strong id="todaySales">¥0</strong><small id="salesProgress">目標 ¥142,000</small></div>
+        <div class="stat"><span>販売数</span><strong id="todayUnits">0個</strong><small id="unitsProgress">目標 310個</small></div>
+        <div class="stat"><span>会計件数</span><strong id="todayTx">0件</strong><small>当日分</small></div>
+      </div>
+      <div class="progress-wrap"><div id="salesBar" class="progress-bar"></div></div>
+      <div class="payment-summary-wrap">
+        <h3>決済別売上</h3>
+        <div id="paymentSummary" class="payment-summary"></div>
+      </div>
+      <div class="stats-actions">
+        <button id="exportCsv" class="secondary">CSVを書き出す</button>
+        <button id="exportBackup" class="secondary">バックアップ(JSON)</button>
+        <button id="clearDaySales" class="danger-btn">本日の売上を全消去</button>
+      </div>
+      <details class="sales-log-wrap">
+        <summary>会計履歴・修正／削除</summary>
+        <div id="salesLog" class="sales-log"></div>
+      </details>
+    </section>
+  </main>
+
+  <main id="fulfillmentView" class="fulfillment-layout view">
+    <section class="panel fulfillment-panel">
+      <div class="panel-title-row fulfillment-head">
+        <div>
+          <h2>受け渡し確認</h2>
+          <p class="muted">精算済みの注文です。商品を渡したら商品ごとにチェックしてください。</p>
+        </div>
+        <div class="fulfillment-filters">
+          <button id="filterPending" class="filter-btn active" type="button">未完了のみ</button>
+          <button id="filterAll" class="filter-btn" type="button">すべて</button>
+          <button id="refreshFulfillment" class="secondary" type="button">更新</button>
+        </div>
+      </div>
+      <div id="fulfillmentList" class="fulfillment-list"></div>
+      <div id="fulfillmentEmpty" class="empty">受け渡し待ちの注文はありません</div>
+    </section>
+  </main>
+
+  <dialog id="tenderDialog" class="tender-dialog">
+    <div class="dialog-card small tender-card">
+      <div class="dialog-head"><h2>お預かり金を入力</h2><button id="cancelTender" type="button" class="icon-btn" aria-label="閉じる">×</button></div>
+      <div class="tender-summary"><span>会計金額</span><strong id="tenderTotalPreview">¥0</strong></div>
+      <div class="tender-preview" id="tenderPreview">¥0</div>
+      <div id="tenderPad" class="tender-pad" aria-label="金額入力キー">
+        <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+        <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+        <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+        <button type="button" data-key="clear" class="tender-fn">C</button><button type="button" data-key="0">0</button><button type="button" data-key="back" class="tender-fn">⌫</button>
+      </div>
+      <button type="button" id="tenderExact" class="secondary tender-exact">ちょうど（会計金額）</button>
+      <button id="confirmTender" type="button" class="primary tender-confirm">この金額で決定</button>
+    </div>
+  </dialog>
+
+  <dialog id="checkoutDialog">
+    <div class="dialog-card small checkout-complete-card">
+      <div class="checkout-ok">✓</div>
+      <h2>精算完了</h2>
+      <div class="order-number-label">受付番号</div>
+      <div id="checkoutOrderNo" class="order-number">—</div>
+      <div id="checkoutSummary" class="checkout-summary"></div>
+      <div class="dialog-footer checkout-footer">
+        <button id="closeCheckoutDialog" class="secondary" type="button">続けて会計</button>
+        <button id="goFulfillment" class="primary" type="button">受け渡し画面へ</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="adminDialog">
+    <form method="dialog" class="dialog-card" id="adminFormShell">
+      <div class="dialog-head"><h2>商品管理</h2><button value="close" class="icon-btn" aria-label="閉じる">×</button></div>
+      <p class="muted">販売済みの商品は履歴保護のため完全削除せず「販売停止」にします。</p>
+      <div id="adminList" class="admin-list"></div>
+      <hr />
+      <h3>商品を追加</h3>
+      <div class="form-grid">
+        <label>商品名<input id="newName" type="text" /></label>
+        <label>価格<input id="newPrice" type="number" min="0" step="10" inputmode="numeric" /></label>
+        <label>カテゴリー
+          <select id="newCategory">
+            <option>フード</option><option>ドリンク</option><option>ジェラート</option><option>その他</option>
+          </select>
+        </label>
+      </div>
+      <button id="addProduct" type="button" class="primary">＋ 商品を追加</button>
+      <div class="dialog-footer"><button value="close" class="secondary">閉じる</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="editDialog">
+    <form method="dialog" class="dialog-card small" id="editForm">
+      <div class="dialog-head"><h2>商品編集</h2><button value="close" class="icon-btn">×</button></div>
+      <input type="hidden" id="editId" />
+      <label>商品名<input id="editName" type="text" required /></label>
+      <label>価格<input id="editPrice" type="number" min="0" step="10" inputmode="numeric" required /></label>
+      <label>カテゴリー<select id="editCategory"><option>フード</option><option>ドリンク</option><option>ジェラート</option><option>その他</option></select></label>
+      <div class="dialog-footer"><button value="close" class="secondary">キャンセル</button><button id="saveEdit" type="button" class="primary">保存</button></div>
+    </form>
+  </dialog>
+
+
+  <dialog id="saleEditDialog">
+    <div class="dialog-card small sale-edit-card">
+      <div class="dialog-head"><div><h2>売上を修正</h2><p id="saleEditMeta" class="muted"></p></div><button type="button" class="icon-btn" onclick="document.getElementById('saleEditDialog').close()">×</button></div>
+      <label>支払方法
+        <select id="saleEditPayment">
+          <option value="cash">現金</option><option value="paypay">PayPay</option><option value="rakutenpay">楽天ペイ</option><option value="dbarai">d払い</option><option value="aupay">au PAY</option><option value="credit">クレジットカード</option>
+        </select>
+      </label>
+      <div id="saleEditItems" class="sale-edit-items"></div>
+      <div class="sale-edit-add-wrap">
+        <div class="sale-edit-add-head"><strong>同額商品を追加・入れ替え</strong><small>現在の会計に含まれる単価と同じ商品のみ表示します。入れ替える場合は、元の商品を「−」で0にしてから追加してください。</small></div>
+        <div id="saleEditAddProducts" class="sale-edit-add-products"></div>
+      </div>
+      <div class="sale-edit-total"><span>修正後合計</span><strong id="saleEditTotal">¥0</strong></div>
+      <p class="muted sale-edit-note">数量を0にすると、その商品をこの会計から削除します。同額商品は上の一覧から追加できます。受付番号は変更しません。</p>
+      <div class="dialog-footer"><button type="button" class="secondary" onclick="document.getElementById('saleEditDialog').close()">キャンセル</button><button id="saveSaleEdit" type="button" class="primary">修正を保存</button></div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js?v=11"></script>
+</body>
+</html>
