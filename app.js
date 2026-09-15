@@ -56,7 +56,26 @@ async function seed(){
   }
 }
 async function loadProducts(){products=(await getAll('products')).sort((a,b)=>(a.order||0)-(b.order||0));renderProducts();renderAdmin()}
-function renderProducts(){const g=el('productGrid');g.innerHTML='';const active=products.filter(p=>p.active);el('activeProductCount').textContent=`販売中 ${active.length}品`;active.forEach(p=>{const b=document.createElement('button');b.className='product-btn';b.disabled=p.price<=0;b.innerHTML=`<div class="name">${escapeHtml(p.name)}</div><div class="meta"><span class="cat">${escapeHtml(p.category||'')}</span><span class="price">${p.price>0?fmt(p.price):'価格未設定'}</span></div>`;b.onclick=()=>addToCart(p.id);g.appendChild(b)})}
+function renderProducts(){
+  const g=el('productGrid');g.innerHTML='';
+  const active=products.filter(p=>p.active);
+  el('activeProductCount').textContent=`販売中 ${active.length}品`;
+  const makeSpacer=()=>{const s=document.createElement('div');s.className='product-spacer';s.setAttribute('aria-hidden','true');g.appendChild(s)};
+  const appendProduct=p=>{const b=document.createElement('button');b.className='product-btn';b.disabled=p.price<=0;b.innerHTML=`<div class="name">${escapeHtml(p.name)}</div><div class="meta"><span class="cat">${escapeHtml(p.category||'')}</span><span class="price">${p.price>0?fmt(p.price):'価格未設定'}</span></div>`;b.onclick=()=>addToCart(p.id);g.appendChild(b)};
+  const cats=[];
+  active.forEach(p=>{const cat=p.category||'その他';let group=cats.find(x=>x.cat===cat);if(!group){group={cat,items:[]};cats.push(group)}group.items.push(p)});
+  let cell=0;
+  cats.forEach(group=>{
+    while(cell%3!==0){makeSpacer();cell++}
+    if(group.cat==='ドリンク'){
+      group.items.forEach((p,i)=>{appendProduct(p);cell++;if((i+1)%2===0){makeSpacer();cell++}});
+      if(group.items.length%2===1){makeSpacer();cell++;makeSpacer();cell++}
+    }else{
+      group.items.forEach(p=>{appendProduct(p);cell++});
+      while(cell%3!==0){makeSpacer();cell++}
+    }
+  });
+}
 function addToCart(id){const p=products.find(x=>x.id===id);if(!p||p.price<=0)return;cart.set(id,(cart.get(id)||0)+1);renderCart()}
 function renderCart(){const list=el('cartList');list.innerHTML='';let total=0,count=0;for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(!p)continue;total+=p.price*q;count+=q;const row=document.createElement('div');row.className='cart-row';row.innerHTML=`<div><div class="cart-name">${escapeHtml(p.name)}</div><div class="cart-sub">${fmt(p.price)} × ${q} = ${fmt(p.price*q)}</div></div><div class="qty-controls"><button data-act="minus">−</button><strong>${q}</strong><button data-act="plus">＋</button></div>`;row.querySelector('[data-act=minus]').onclick=()=>{q<=1?cart.delete(id):cart.set(id,q-1);renderCart()};row.querySelector('[data-act=plus]').onclick=()=>{cart.set(id,q+1);renderCart()};list.appendChild(row)}el('cartEmpty').style.display=cart.size?'none':'block';el('itemCount').textContent=`${count}点`;el('grandTotal').textContent=fmt(total);renderQuickCash(total);calcChange();updateCheckoutState()}
 function cartTotal(){let t=0;for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(p)t+=p.price*q}return t}
