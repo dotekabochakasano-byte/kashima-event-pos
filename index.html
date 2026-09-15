@@ -17,7 +17,7 @@
 <body>
   <header class="topbar">
     <div>
-      <h1>鹿嶋まつり イベントレジ</h1>
+      <h1>鹿嶋まつり イベントレジ <span class="app-version">Ver.0.15</span></h1>
       <div class="subline"><span id="offlineBadge" class="badge">オフライン対応</span><span id="clock"></span></div>
     </div>
     <div class="header-actions">
@@ -156,11 +156,11 @@
       <div class="admin-sort-tools">
         <div>
           <strong>商品の並び順</strong>
-          <small>この順番がレジ画面の商品ボタンに反映されます。</small>
+          <small>この順番がレジ画面の商品ボタンに反映されます。各カテゴリーの「＋ 空白」で好きな位置に空白マスを作れます。</small>
         </div>
         <button id="sortByCategory" type="button" class="secondary">カテゴリー順に整列</button>
       </div>
-      <div class="category-order-hint">カテゴリー順：<strong>フード → ドリンク → ジェラート → その他</strong></div>
+      <div class="category-order-hint">カテゴリー順：<strong>フード → ドリンク → ジェラート → その他</strong>　空白マスも ↑↓ で移動できます。</div>
       <div id="adminList" class="admin-list"></div>
       <hr />
       <h3>商品を追加</h3>
@@ -210,6 +210,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

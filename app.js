@@ -35,6 +35,10 @@ const initialProducts=[
   {id:'gelato-2',name:'ジェラート 2',price:400,category:'ジェラート',active:true,order:120},
   {id:'gelato-3',name:'ジェラート 3',price:400,category:'ジェラート',active:true,order:130},
 ];
+const defaultSpacers=[
+  {id:'spacer-drink-1',name:'空白',price:0,category:'ドリンク',active:true,order:85,isSpacer:true},
+  {id:'spacer-drink-2',name:'空白',price:0,category:'ドリンク',active:true,order:105,isSpacer:true},
+];
 const CATEGORY_ORDER=['フード','ドリンク','ジェラート','その他'];
 function categoryRank(cat){const i=CATEGORY_ORDER.indexOf(cat);return i>=0?i:CATEGORY_ORDER.length}
 
@@ -47,6 +51,7 @@ async function seed(){
   const existing=await getAll('products');
   if(existing.length===0){for(const p of initialProducts)await put('products',p);return}
   const byId=new Map(existing.map(p=>[p.id,p]));
+  for(const sp of defaultSpacers){if(!byId.has(sp.id))await put('products',sp)}
   for(const p of initialProducts){
     const cur=byId.get(p.id);
     if(!cur){await put('products',p);continue}
@@ -58,29 +63,21 @@ async function seed(){
 async function loadProducts(){products=(await getAll('products')).sort((a,b)=>(a.order||0)-(b.order||0));renderProducts();renderAdmin()}
 function renderProducts(){
   const g=el('productGrid');g.innerHTML='';
-  const active=products.filter(p=>p.active);
-  el('activeProductCount').textContent=`販売中 ${active.length}品`;
+  const activeProducts=products.filter(p=>p.active && !p.isSpacer);
+  el('activeProductCount').textContent=`販売中 ${activeProducts.length}品`;
   const makeSpacer=()=>{const s=document.createElement('div');s.className='product-spacer';s.setAttribute('aria-hidden','true');g.appendChild(s)};
   const appendProduct=p=>{const b=document.createElement('button');b.className='product-btn';b.disabled=p.price<=0;b.innerHTML=`<div class="name">${escapeHtml(p.name)}</div><div class="meta"><span class="cat">${escapeHtml(p.category||'')}</span><span class="price">${p.price>0?fmt(p.price):'価格未設定'}</span></div>`;b.onclick=()=>addToCart(p.id);g.appendChild(b)};
-  // レジ画面はカテゴリー順を固定。商品管理の order は各カテゴリー内の順番として使う。
-  const cats=CATEGORY_ORDER.map(cat=>({
-    cat,
-    items:active.filter(p=>(p.category||'その他')===cat).sort((a,b)=>(a.order||0)-(b.order||0))
-  })).filter(group=>group.items.length);
-  // 未知のカテゴリーがあれば最後に表示。
+  // 各カテゴリー内の順番どおりに表示。isSpacer=true は任意の空白マスとして1セル消費する。
+  const visible=products.filter(p=>p.isSpacer || p.active);
+  const cats=CATEGORY_ORDER.map(cat=>({cat,items:visible.filter(p=>(p.category||'その他')===cat).sort((a,b)=>(a.order||0)-(b.order||0))})).filter(group=>group.items.length);
   const known=new Set(CATEGORY_ORDER);
-  const extraCats=[...new Set(active.map(p=>p.category||'その他').filter(cat=>!known.has(cat)))];
-  extraCats.forEach(cat=>cats.push({cat,items:active.filter(p=>(p.category||'その他')===cat).sort((a,b)=>(a.order||0)-(b.order||0))}));
+  const extraCats=[...new Set(visible.map(p=>p.category||'その他').filter(cat=>!known.has(cat)))];
+  extraCats.forEach(cat=>cats.push({cat,items:visible.filter(p=>(p.category||'その他')===cat).sort((a,b)=>(a.order||0)-(b.order||0))}));
   let cell=0;
   cats.forEach(group=>{
     while(cell%3!==0){makeSpacer();cell++}
-    if(group.cat==='ドリンク'){
-      group.items.forEach((p,i)=>{appendProduct(p);cell++;if((i+1)%2===0){makeSpacer();cell++}});
-      if(group.items.length%2===1){makeSpacer();cell++;makeSpacer();cell++}
-    }else{
-      group.items.forEach(p=>{appendProduct(p);cell++});
-      while(cell%3!==0){makeSpacer();cell++}
-    }
+    group.items.forEach(p=>{if(p.isSpacer)makeSpacer();else appendProduct(p);cell++});
+    while(cell%3!==0){makeSpacer();cell++}
   });
 }
 function addToCart(id){const p=products.find(x=>x.id===id);if(!p||p.price<=0)return;cart.set(id,(cart.get(id)||0)+1);renderCart()}
@@ -336,9 +333,36 @@ async function clearCurrentDaySales(){
   await refreshStats();await refreshFulfillment();toast(`${day}日目の売上を全消去しました`)
 }
 
-function renderAdmin(){const list=el('adminList');if(!list)return;list.innerHTML='';let lastCat=null;products.forEach((p,idx)=>{const cat=p.category||'その他';if(cat!==lastCat){const h=document.createElement('div');h.className='admin-category-heading';h.innerHTML=`<span>${escapeHtml(cat)}</span><small>このカテゴリーの商品</small>`;list.appendChild(h);lastCat=cat}const row=document.createElement('div');row.className='admin-row'+(p.active?'':' off');row.innerHTML=`<div class="admin-main"><strong><span class="admin-order-no">${idx+1}</span>${escapeHtml(p.name)}</strong><small><span class="category-chip">${escapeHtml(cat)}</span> ${fmt(p.price)}</small></div><button class="mini move-up" title="1つ上へ" aria-label="${escapeHtml(p.name)}を1つ上へ">↑</button><button class="mini move-down" title="1つ下へ" aria-label="${escapeHtml(p.name)}を1つ下へ">↓</button><button class="mini edit">編集</button><button class="mini toggle">${p.active?'停止':'再開'}</button>`;row.querySelector('.move-up').onclick=()=>moveProduct(p.id,-1);row.querySelector('.move-down').onclick=()=>moveProduct(p.id,1);row.querySelector('.edit').onclick=()=>openEdit(p.id);row.querySelector('.toggle').onclick=()=>toggleProduct(p.id);list.appendChild(row)})}
+function renderAdmin(){
+  const list=el('adminList');if(!list)return;list.innerHTML='';let lastCat=null;
+  products.forEach((p,idx)=>{
+    const cat=p.category||'その他';
+    if(cat!==lastCat){
+      const h=document.createElement('div');h.className='admin-category-heading';
+      h.innerHTML=`<span>${escapeHtml(cat)}</span><div class="admin-category-actions"><small>このカテゴリーの商品</small><button type="button" class="mini add-spacer">＋ 空白</button></div>`;
+      h.querySelector('.add-spacer').onclick=()=>addSpacer(cat);
+      list.appendChild(h);lastCat=cat;
+    }
+    const row=document.createElement('div');
+    if(p.isSpacer){
+      row.className='admin-row spacer-row';
+      row.innerHTML=`<div class="admin-main"><strong><span class="admin-order-no">${idx+1}</span>［空白マス］</strong><small><span class="category-chip">${escapeHtml(cat)}</span> レジ画面で1マス空けます</small></div><button class="mini move-up" title="1つ上へ">↑</button><button class="mini move-down" title="1つ下へ">↓</button><button class="mini delete-spacer">削除</button>`;
+      row.querySelector('.move-up').onclick=()=>moveProduct(p.id,-1);row.querySelector('.move-down').onclick=()=>moveProduct(p.id,1);row.querySelector('.delete-spacer').onclick=()=>deleteSpacer(p.id);list.appendChild(row);return;
+    }
+    row.className='admin-row'+(p.active?'':' off');
+    row.innerHTML=`<div class="admin-main"><strong><span class="admin-order-no">${idx+1}</span>${escapeHtml(p.name)}</strong><small><span class="category-chip">${escapeHtml(cat)}</span> ${fmt(p.price)}</small></div><button class="mini move-up" title="1つ上へ" aria-label="${escapeHtml(p.name)}を1つ上へ">↑</button><button class="mini move-down" title="1つ下へ" aria-label="${escapeHtml(p.name)}を1つ下へ">↓</button><button class="mini edit">編集</button><button class="mini toggle">${p.active?'停止':'再開'}</button>`;
+    row.querySelector('.move-up').onclick=()=>moveProduct(p.id,-1);row.querySelector('.move-down').onclick=()=>moveProduct(p.id,1);row.querySelector('.edit').onclick=()=>openEdit(p.id);row.querySelector('.toggle').onclick=()=>toggleProduct(p.id);list.appendChild(row)
+  })
+}
+async function addSpacer(category){
+  const catItems=products.filter(p=>(p.category||'その他')===category).sort((a,b)=>(a.order||0)-(b.order||0));
+  const last=catItems.at(-1);let order=last?Number(last.order||0)+1:Math.max(0,...products.map(p=>Number(p.order||0)))+10;
+  await put('products',{id:`spacer-${makeId()}`,name:'空白',price:0,category,active:true,order,isSpacer:true});
+  await sortProductsByCategory(false);toast(`${category}に空白マスを追加しました`)
+}
+async function deleteSpacer(id){await del('products',id);await loadProducts();toast('空白マスを削除しました')}
 async function moveProduct(id,dir){const idx=products.findIndex(p=>p.id===id);const target=idx+dir;if(target<0||target>=products.length)return;const a=products[idx],b=products[target];const ao=Number(a.order||((idx+1)*10)),bo=Number(b.order||((target+1)*10));a.order=bo;b.order=ao;await put('products',a);await put('products',b);await loadProducts();toast('商品の並び順を変更しました')}
-async function sortProductsByCategory(){const sorted=[...products].sort((a,b)=>{const ca=categoryRank(a.category||'その他'),cb=categoryRank(b.category||'その他');if(ca!==cb)return ca-cb;return Number(a.order||0)-Number(b.order||0)});for(let i=0;i<sorted.length;i++){sorted[i].order=(i+1)*10;await put('products',sorted[i])}await loadProducts();toast('カテゴリー順に並べ替えました')}
+async function sortProductsByCategory(showToast=true){const sorted=[...products].sort((a,b)=>{const ca=categoryRank(a.category||'その他'),cb=categoryRank(b.category||'その他');if(ca!==cb)return ca-cb;return Number(a.order||0)-Number(b.order||0)});for(let i=0;i<sorted.length;i++){sorted[i].order=(i+1)*10;await put('products',sorted[i])}await loadProducts();if(showToast)toast('カテゴリー順に並べ替えました')}
 function openEdit(id){const p=products.find(x=>x.id===id);el('editId').value=p.id;el('editName').value=p.name;el('editPrice').value=p.price;el('editCategory').value=p.category||'その他';el('editDialog').showModal()}
 async function saveEdit(){const id=el('editId').value;const p=products.find(x=>x.id===id);p.name=el('editName').value.trim();p.price=Number(el('editPrice').value||0);p.category=el('editCategory').value;if(!p.name){toast('商品名を入力してください');return}await put('products',p);el('editDialog').close();await loadProducts();renderCart();toast('商品を更新しました')}
 async function toggleProduct(id){const p=products.find(x=>x.id===id);p.active=!p.active;await put('products',p);await loadProducts();toast(p.active?'販売を再開しました':'販売停止にしました')}
@@ -374,7 +398,7 @@ async function init(){
   el('filterAll').onclick=()=>{fulfillmentPendingOnly=false;el('filterAll').classList.add('active');el('filterPending').classList.remove('active');refreshFulfillment()};
   el('closeCheckoutDialog').onclick=()=>el('checkoutDialog').close();bindTap(el('goFulfillment'),()=>{try{el('checkoutDialog').close()}catch(_){};setTimeout(()=>showView('fulfillment'),80)});
   setInterval(()=>el('clock').textContent=new Date().toLocaleString('ja-JP'),1000);updateOnline();window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-  if('serviceWorker'in navigator){try{await navigator.serviceWorker.register('./sw.js?v=12')}catch(e){console.warn('SW register failed',e)}}
+  if('serviceWorker'in navigator){try{await navigator.serviceWorker.register('./sw.js?v=15')}catch(e){console.warn('SW register failed',e)}}
 }
 
 init();

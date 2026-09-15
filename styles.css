@@ -30,3 +30,6 @@
 @media(max-width:680px){.product-spacer{display:none}}
 
 .app-version{font-size:11px;color:#94a3b8;margin-left:4px}
+
+/* v0.15 arbitrary blank slots */
+.admin-category-actions{display:flex;align-items:center;gap:8px}.admin-category-actions .add-spacer{min-height:34px;padding:5px 9px;background:#fff;border:1px solid #94a3b8;border-radius:8px;font-weight:800}.spacer-row{background:repeating-linear-gradient(135deg,#f8fafc,#f8fafc 8px,#eef2f7 8px,#eef2f7 16px);border-style:dashed}.spacer-row .admin-main strong{color:#64748b}.spacer-row .delete-spacer{color:#b91c1c;border-color:#fecaca;background:#fff1f2}@media(max-width:680px){.admin-category-actions{align-items:flex-end;flex-direction:column;gap:4px}}
