@@ -346,11 +346,11 @@ function renderAdmin(){
     const row=document.createElement('div');
     if(p.isSpacer){
       row.className='admin-row spacer-row';
-      row.innerHTML=`<div class="admin-main"><strong><span class="admin-order-no">${idx+1}</span>［空白マス］</strong><small><span class="category-chip">${escapeHtml(cat)}</span> レジ画面で1マス空けます</small></div><button class="mini move-up" title="1つ上へ">↑</button><button class="mini move-down" title="1つ下へ">↓</button><button class="mini delete-spacer">削除</button>`;
+      row.innerHTML=`<div class="admin-main"><strong><span class="admin-order-no">${idx+1}</span>［空白マス］</strong><small><span class="category-chip">${escapeHtml(cat)}</span> レジ画面で1マス空けます</small></div><button type="button" class="mini move-up" title="1つ上へ">↑</button><button type="button" class="mini move-down" title="1つ下へ">↓</button><button type="button" class="mini delete-spacer">削除</button>`;
       row.querySelector('.move-up').onclick=()=>moveProduct(p.id,-1);row.querySelector('.move-down').onclick=()=>moveProduct(p.id,1);row.querySelector('.delete-spacer').onclick=()=>deleteSpacer(p.id);list.appendChild(row);return;
     }
     row.className='admin-row'+(p.active?'':' off');
-    row.innerHTML=`<div class="admin-main"><strong><span class="admin-order-no">${idx+1}</span>${escapeHtml(p.name)}</strong><small><span class="category-chip">${escapeHtml(cat)}</span> ${fmt(p.price)}</small></div><button class="mini move-up" title="1つ上へ" aria-label="${escapeHtml(p.name)}を1つ上へ">↑</button><button class="mini move-down" title="1つ下へ" aria-label="${escapeHtml(p.name)}を1つ下へ">↓</button><button class="mini edit">編集</button><button class="mini toggle">${p.active?'停止':'再開'}</button>`;
+    row.innerHTML=`<div class="admin-main"><strong><span class="admin-order-no">${idx+1}</span>${escapeHtml(p.name)}</strong><small><span class="category-chip">${escapeHtml(cat)}</span> ${fmt(p.price)}</small></div><button type="button" class="mini move-up" title="1つ上へ" aria-label="${escapeHtml(p.name)}を1つ上へ">↑</button><button type="button" class="mini move-down" title="1つ下へ" aria-label="${escapeHtml(p.name)}を1つ下へ">↓</button><button type="button" class="mini edit">編集</button><button type="button" class="mini toggle">${p.active?'停止':'再開'}</button>`;
     row.querySelector('.move-up').onclick=()=>moveProduct(p.id,-1);row.querySelector('.move-down').onclick=()=>moveProduct(p.id,1);row.querySelector('.edit').onclick=()=>openEdit(p.id);row.querySelector('.toggle').onclick=()=>toggleProduct(p.id);list.appendChild(row)
   })
 }
@@ -358,15 +358,16 @@ async function addSpacer(category){
   const catItems=products.filter(p=>(p.category||'その他')===category).sort((a,b)=>(a.order||0)-(b.order||0));
   const last=catItems.at(-1);let order=last?Number(last.order||0)+1:Math.max(0,...products.map(p=>Number(p.order||0)))+10;
   await put('products',{id:`spacer-${makeId()}`,name:'空白',price:0,category,active:true,order,isSpacer:true});
-  await sortProductsByCategory(false);toast(`${category}に空白マスを追加しました`)
+  await sortProductsByCategory(false);await ensureAdminOpen();toast(`${category}に空白マスを追加しました`)
 }
-async function deleteSpacer(id){await del('products',id);await loadProducts();toast('空白マスを削除しました')}
-async function moveProduct(id,dir){const idx=products.findIndex(p=>p.id===id);const target=idx+dir;if(target<0||target>=products.length)return;const a=products[idx],b=products[target];const ao=Number(a.order||((idx+1)*10)),bo=Number(b.order||((target+1)*10));a.order=bo;b.order=ao;await put('products',a);await put('products',b);await loadProducts();toast('商品の並び順を変更しました')}
-async function sortProductsByCategory(showToast=true){const sorted=[...products].sort((a,b)=>{const ca=categoryRank(a.category||'その他'),cb=categoryRank(b.category||'その他');if(ca!==cb)return ca-cb;return Number(a.order||0)-Number(b.order||0)});for(let i=0;i<sorted.length;i++){sorted[i].order=(i+1)*10;await put('products',sorted[i])}await loadProducts();if(showToast)toast('カテゴリー順に並べ替えました')}
+async function ensureAdminOpen(){const d=el('adminDialog');if(d&&!d.open){try{d.showModal()}catch(_){}}}
+async function deleteSpacer(id){await del('products',id);await loadProducts();await ensureAdminOpen();toast('空白マスを削除しました')}
+async function moveProduct(id,dir){const idx=products.findIndex(p=>p.id===id);const target=idx+dir;if(target<0||target>=products.length)return;const a=products[idx],b=products[target];const ao=Number(a.order||((idx+1)*10)),bo=Number(b.order||((target+1)*10));a.order=bo;b.order=ao;await put('products',a);await put('products',b);await loadProducts();await ensureAdminOpen();toast('商品の並び順を変更しました')}
+async function sortProductsByCategory(showToast=true){const sorted=[...products].sort((a,b)=>{const ca=categoryRank(a.category||'その他'),cb=categoryRank(b.category||'その他');if(ca!==cb)return ca-cb;return Number(a.order||0)-Number(b.order||0)});for(let i=0;i<sorted.length;i++){sorted[i].order=(i+1)*10;await put('products',sorted[i])}await loadProducts();await ensureAdminOpen();if(showToast)toast('カテゴリー順に並べ替えました')}
 function openEdit(id){const p=products.find(x=>x.id===id);el('editId').value=p.id;el('editName').value=p.name;el('editPrice').value=p.price;el('editCategory').value=p.category||'その他';el('editDialog').showModal()}
-async function saveEdit(){const id=el('editId').value;const p=products.find(x=>x.id===id);p.name=el('editName').value.trim();p.price=Number(el('editPrice').value||0);p.category=el('editCategory').value;if(!p.name){toast('商品名を入力してください');return}await put('products',p);el('editDialog').close();await loadProducts();renderCart();toast('商品を更新しました')}
-async function toggleProduct(id){const p=products.find(x=>x.id===id);p.active=!p.active;await put('products',p);await loadProducts();toast(p.active?'販売を再開しました':'販売停止にしました')}
-async function addProduct(){const name=el('newName').value.trim();const price=Number(el('newPrice').value||0);const category=el('newCategory').value;if(!name){toast('商品名を入力してください');return}const max=Math.max(0,...products.map(p=>p.order||0));await put('products',{id:makeId(),name,price,category,active:true,order:max+10});el('newName').value='';el('newPrice').value='';await loadProducts();toast('商品を追加しました')}
+async function saveEdit(){const id=el('editId').value;const p=products.find(x=>x.id===id);p.name=el('editName').value.trim();p.price=Number(el('editPrice').value||0);p.category=el('editCategory').value;if(!p.name){toast('商品名を入力してください');return}await put('products',p);el('editDialog').close();await loadProducts();await ensureAdminOpen();renderCart();toast('商品を更新しました')}
+async function toggleProduct(id){const p=products.find(x=>x.id===id);p.active=!p.active;await put('products',p);await loadProducts();await ensureAdminOpen();toast(p.active?'販売を再開しました':'販売停止にしました')}
+async function addProduct(){const name=el('newName').value.trim();const price=Number(el('newPrice').value||0);const category=el('newCategory').value;if(!name){toast('商品名を入力してください');return}const max=Math.max(0,...products.map(p=>p.order||0));await put('products',{id:makeId(),name,price,category,active:true,order:max+10});el('newName').value='';el('newPrice').value='';await loadProducts();await ensureAdminOpen();toast('商品を追加しました')}
 function publicAccountingId(s){
   // IndexedDB内部の一意IDはそのまま維持し、CSVには人が読みやすい会計IDを出力する。
   // 鹿嶋まつり2026は1日目=10/3、2日目=10/4として、受付番号を末尾につけて一意にする。
@@ -398,7 +399,7 @@ async function init(){
   el('filterAll').onclick=()=>{fulfillmentPendingOnly=false;el('filterAll').classList.add('active');el('filterPending').classList.remove('active');refreshFulfillment()};
   el('closeCheckoutDialog').onclick=()=>el('checkoutDialog').close();bindTap(el('goFulfillment'),()=>{try{el('checkoutDialog').close()}catch(_){};setTimeout(()=>showView('fulfillment'),80)});
   setInterval(()=>el('clock').textContent=new Date().toLocaleString('ja-JP'),1000);updateOnline();window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-  if('serviceWorker'in navigator){try{await navigator.serviceWorker.register('./sw.js?v=15')}catch(e){console.warn('SW register failed',e)}}
+  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=16');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
 }
 
 init();
