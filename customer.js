@@ -17,11 +17,26 @@ function renderOrder(state){
   if(!state||!state.items||!state.items.length){show('standbyView');return}
   clearTimeout(completeTimer);
   el('customerItems').innerHTML=state.items.map(i=>`<div class="customer-item"><div class="customer-item-name">${escapeHtml(i.name)}</div><div class="customer-item-qty">× ${i.qty}</div><div class="customer-item-sub">${fmt(i.subtotal)}</div></div>`).join('');
-  el('customerTotal').textContent=fmt(state.total);el('customerPayment').textContent=state.paymentLabel||'現金';show('orderView');
+  el('customerTotal').textContent=fmt(state.total);
+  el('customerPayment').textContent=state.paymentLabel||'現金';
+  const cashInfo=el('customerCashInfo');
+  const isCash=state.paymentMethod==='cash';
+  if(cashInfo){
+    if(isCash){
+      el('customerTendered').textContent=fmt(state.tendered||0);
+      el('customerChange').textContent=fmt(state.change||0);
+      cashInfo.hidden=false;
+    }else{
+      cashInfo.hidden=true;
+    }
+  }
+  show('orderView');
 }
 function renderComplete(state){
-  clearTimeout(completeTimer);el('completeOrderNo').textContent=String(state.orderNo||'---').padStart(3,'0');el('completePayment').textContent=`お支払い：${state.paymentLabel||''}　${fmt(state.total)}`;
-  el('completeChange').textContent=state.change>0?`お釣り：${fmt(state.change)}`:'';show('completeView');
+  clearTimeout(completeTimer);el('completeOrderNo').textContent=String(state.orderNo||'---').padStart(3,'0');
+  const cashDetail=state.paymentMethod==='cash' ? `　お預かり：${fmt(state.tendered||0)}` : '';
+  el('completePayment').textContent=`お支払い：${state.paymentLabel||''}　${fmt(state.total)}${cashDetail}`;
+  el('completeChange').textContent=state.paymentMethod==='cash' ? `お釣り：${fmt(state.change||0)}` : '';show('completeView');
   completeTimer=setTimeout(()=>show('standbyView'),6500);
 }
 function handleState(state){if(!state)return;if(state.type==='complete')renderComplete(state);else if(state.type==='order')renderOrder(state);else if(state.type==='ad-updated')loadAdVideo();else show('standbyView');}

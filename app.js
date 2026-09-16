@@ -67,7 +67,7 @@ function buildCustomerOrderState(){
   const items=[];let total=0;
   for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(!p)continue;const subtotal=Number(p.price||0)*Number(q||0);items.push({name:p.name,qty:q,price:p.price,subtotal});total+=subtotal}
   if(!items.length)return {type:'idle'};
-  return {type:'order',items,total,paymentMethod:selectedPayment,paymentLabel:(PAYMENT_METHODS[selectedPayment]||PAYMENT_METHODS.cash).label};
+  return {type:'order',items,total,paymentMethod:selectedPayment,paymentLabel:(PAYMENT_METHODS[selectedPayment]||PAYMENT_METHODS.cash).label,tendered:selectedPayment==='cash'?tenderedAmount:total,change:selectedPayment==='cash'?Math.max(0,(tenderedAmount||0)-total):0};
 }
 function publishCustomerState(state){
   const payload={...state,_ts:Date.now()};
@@ -202,7 +202,7 @@ async function checkout(){
   const summary=`${fmt(total)} / ${pm.label}<br>${items.map(i=>`${escapeHtml(i.name)} × ${i.qty}`).join('<br>')}`;
   cart.clear();tenderedAmount=0;el('tendered').value='';setPayment('cash');renderCart();await refreshStats();await refreshFulfillment();
   el('checkoutOrderNo').textContent=String(orderNo).padStart(3,'0');el('checkoutSummary').innerHTML=summary;el('checkoutDialog').showModal();
-  publishCustomerState({type:'complete',orderNo,total,paymentMethod:sale.paymentMethod,paymentLabel:sale.paymentLabel,change:sale.change,items:sale.items.map(i=>({name:i.name,qty:i.qty,subtotal:i.subtotal}))});
+  publishCustomerState({type:'complete',orderNo,total,paymentMethod:sale.paymentMethod,paymentLabel:sale.paymentLabel,tendered:sale.tendered,change:sale.change,items:sale.items.map(i=>({name:i.name,qty:i.qty,subtotal:i.subtotal}))});
 }
 async function refreshStats(){
   const day=Number(el('eventDay').value);

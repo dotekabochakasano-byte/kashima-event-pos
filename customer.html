@@ -6,19 +6,19 @@
   <meta name="theme-color" content="#020617" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>鹿嶋まつり 顧客表示</title>
-  <link rel="stylesheet" href="customer.css?v=17" />
+  <title>鹿島ハイツ 鹿島神宮駅前店 顧客表示</title>
+  <link rel="stylesheet" href="customer.css?v=18" />
 </head>
 <body>
   <main class="customer-shell">
     <section id="standbyView" class="customer-view active">
       <video id="adVideo" class="ad-video" muted playsinline autoplay loop hidden></video>
       <div id="standbyFallback" class="standby-fallback">
-        <div class="standby-mark">KASHIMA FESTIVAL</div>
-        <h1>鹿嶋まつり</h1>
+        <div class="standby-mark">KASHIMA HEIGHTS</div>
+        <h1><span class="standby-title-small">鹿島ハイツ</span><span class="standby-title-main">鹿島神宮駅前店</span></h1>
         <p>ご注文をお待ちしています</p>
       </div>
-      <div class="customer-brand">鹿嶋まつり イベントレジ</div>
+      <div class="customer-brand">鹿島ハイツ 鹿島神宮駅前店 イベントレジ</div>
     </section>
 
     <section id="orderView" class="customer-view order-view">
@@ -26,6 +26,10 @@
       <div id="customerItems" class="customer-items"></div>
       <div class="customer-total-row"><span>合計</span><strong id="customerTotal">¥0</strong></div>
       <div class="customer-payment-row">お支払い：<strong id="customerPayment">現金</strong></div>
+      <div id="customerCashInfo" class="customer-cash-info" hidden>
+        <div class="customer-cash-box"><span>お預かり</span><strong id="customerTendered">¥0</strong></div>
+        <div class="customer-cash-box"><span>お釣り</span><strong id="customerChange">¥0</strong></div>
+      </div>
     </section>
 
     <section id="completeView" class="customer-view complete-view">
@@ -40,6 +44,6 @@
 
     <div id="connectionBadge" class="connection-badge">顧客表示</div>
   </main>
-  <script src="customer.js?v=17"></script>
+  <script src="customer.js?v=18"></script>
 </body>
 </html>
