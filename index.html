@@ -11,18 +11,19 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon-precomposed" href="icons/icon-192.png" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=17" />
   <title>鹿嶋まつり イベントレジ</title>
 </head>
 <body>
   <header class="topbar">
     <div>
-      <h1>鹿嶋まつり イベントレジ <span class="app-version">Ver.0.16</span></h1>
+      <h1>鹿嶋まつり イベントレジ <span class="app-version">Ver.0.17</span></h1>
       <div class="subline"><span id="offlineBadge" class="badge">オフライン対応</span><span id="clock"></span></div>
     </div>
     <div class="header-actions">
       <button id="showRegister" class="nav-btn active" type="button">レジ</button>
       <button id="showFulfillment" class="nav-btn" type="button">受け渡し <span id="pendingBadge" class="count-badge">0</span></button>
+      <button id="openCustomerDisplay" class="nav-btn customer-display-btn" type="button">顧客表示</button>
       <select id="eventDay" aria-label="日付区分">
         <option value="1">1日目</option>
         <option value="2">2日目</option>
@@ -174,6 +175,25 @@
         </label>
       </div>
       <button id="addProduct" type="button" class="primary">＋ 商品を追加</button>
+      <hr />
+      <section class="ad-settings">
+        <h3>顧客表示・広告設定</h3>
+        <p class="muted">顧客表示を使っていない待機中は広告動画をループ再生します。動画はあとから差し替えできます。</p>
+        <div class="ad-setting-row">
+          <label class="file-picker">広告動画を選択
+            <input id="adVideoFile" type="file" accept="video/mp4,video/quicktime,video/x-m4v" />
+          </label>
+          <div class="ad-video-meta">
+            <strong id="adVideoName">広告動画：未設定</strong>
+            <small>推奨：MP4（H.264）、横長、100MB程度以下</small>
+          </div>
+          <button id="removeAdVideo" type="button" class="danger-btn">広告動画を削除</button>
+        </div>
+        <div class="ad-setting-actions">
+          <button id="previewCustomerDisplay" type="button" class="secondary">顧客表示を開く</button>
+          <small>外部モニター接続時は、開いた顧客表示ウインドウを外部画面へ移動してください。</small>
+        </div>
+      </section>
       <div class="dialog-footer"><button value="close" class="secondary">閉じる</button></div>
     </form>
   </dialog>
@@ -210,6 +230,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>

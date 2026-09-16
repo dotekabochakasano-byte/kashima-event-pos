@@ -1,5 +1,6 @@
 const DB_NAME='kashima-event-pos'; const DB_VERSION=1;
 let db; let products=[]; let cart=new Map(); let selectedPayment='cash'; let fulfillmentPendingOnly=true; let tenderedAmount=0; let checkoutBusy=false; let lastCheckoutActivation=0; let editingSaleId=null;
+let customerChannel=null; let customerWindow=null;
 const fmt=n=>new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(Number(n||0));
 const el=id=>document.getElementById(id);
 function makeId(){
@@ -47,6 +48,7 @@ function tx(store,mode='readonly'){return db.transaction(store,mode).objectStore
 function getAll(store){return new Promise((res,rej)=>{const r=tx(store).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function put(store,obj){return new Promise((res,rej)=>{const r=tx(store,'readwrite').put(obj);r.onsuccess=()=>res(obj);r.onerror=()=>rej(r.error)})}
 function del(store,key){return new Promise((res,rej)=>{const r=tx(store,'readwrite').delete(key);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+function getOne(store,key){return new Promise((res,rej)=>{const r=tx(store).get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function seed(){
   const existing=await getAll('products');
   if(existing.length===0){for(const p of initialProducts)await put('products',p);return}
@@ -61,6 +63,35 @@ async function seed(){
   }
 }
 async function loadProducts(){products=(await getAll('products')).sort((a,b)=>(a.order||0)-(b.order||0));renderProducts();renderAdmin()}
+function buildCustomerOrderState(){
+  const items=[];let total=0;
+  for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(!p)continue;const subtotal=Number(p.price||0)*Number(q||0);items.push({name:p.name,qty:q,price:p.price,subtotal});total+=subtotal}
+  if(!items.length)return {type:'idle'};
+  return {type:'order',items,total,paymentMethod:selectedPayment,paymentLabel:(PAYMENT_METHODS[selectedPayment]||PAYMENT_METHODS.cash).label};
+}
+function publishCustomerState(state){
+  const payload={...state,_ts:Date.now()};
+  try{if(customerChannel)customerChannel.postMessage(payload)}catch(_){ }
+  try{localStorage.setItem('kashimaCustomerState',JSON.stringify(payload))}catch(_){ }
+}
+function publishCurrentOrder(){publishCustomerState(buildCustomerOrderState())}
+function openCustomerDisplay(){
+  try{customerWindow=window.open('./customer.html','kashimaCustomerDisplay');if(!customerWindow)toast('顧客表示を開けませんでした。ポップアップを許可してください');else{toast('顧客表示を開きました');setTimeout(publishCurrentOrder,300)}}catch(e){console.error(e);toast('顧客表示を開けませんでした')}
+}
+async function loadAdVideoMeta(){
+  const nameEl=el('adVideoName');if(!nameEl)return;
+  try{const rec=await getOne('settings','adVideo');nameEl.textContent=rec&&rec.name?`広告動画：${rec.name}`:'広告動画：未設定'}catch(_){nameEl.textContent='広告動画：未設定'}
+}
+async function saveAdVideoFile(file){
+  if(!file)return;
+  if(file.size>150*1024*1024){toast('動画は150MB以下を推奨します');return}
+  try{await put('settings',{key:'adVideo',name:file.name,type:file.type||'video/mp4',size:file.size,updatedAt:new Date().toISOString(),blob:file});await loadAdVideoMeta();publishCustomerState({type:'ad-updated'});toast('広告動画を保存しました')}catch(e){console.error(e);alert('広告動画を保存できませんでした。\n'+(e&&e.message?e.message:String(e)))}
+}
+async function removeAdVideo(){
+  if(!confirm('広告動画を削除しますか？'))return;
+  await del('settings','adVideo');await loadAdVideoMeta();publishCustomerState({type:'ad-updated'});toast('広告動画を削除しました')
+}
+
 function renderProducts(){
   const g=el('productGrid');g.innerHTML='';
   const activeProducts=products.filter(p=>p.active && !p.isSpacer);
@@ -81,7 +112,7 @@ function renderProducts(){
   });
 }
 function addToCart(id){const p=products.find(x=>x.id===id);if(!p||p.price<=0)return;cart.set(id,(cart.get(id)||0)+1);renderCart()}
-function renderCart(){const list=el('cartList');list.innerHTML='';let total=0,count=0;for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(!p)continue;total+=p.price*q;count+=q;const row=document.createElement('div');row.className='cart-row';row.innerHTML=`<div><div class="cart-name">${escapeHtml(p.name)}</div><div class="cart-sub">${fmt(p.price)} × ${q} = ${fmt(p.price*q)}</div></div><div class="qty-controls"><button data-act="minus">−</button><strong>${q}</strong><button data-act="plus">＋</button></div>`;row.querySelector('[data-act=minus]').onclick=()=>{q<=1?cart.delete(id):cart.set(id,q-1);renderCart()};row.querySelector('[data-act=plus]').onclick=()=>{cart.set(id,q+1);renderCart()};list.appendChild(row)}el('cartEmpty').style.display=cart.size?'none':'block';el('itemCount').textContent=`${count}点`;el('grandTotal').textContent=fmt(total);renderQuickCash(total);calcChange();updateCheckoutState()}
+function renderCart(){const list=el('cartList');list.innerHTML='';let total=0,count=0;for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(!p)continue;total+=p.price*q;count+=q;const row=document.createElement('div');row.className='cart-row';row.innerHTML=`<div><div class="cart-name">${escapeHtml(p.name)}</div><div class="cart-sub">${fmt(p.price)} × ${q} = ${fmt(p.price*q)}</div></div><div class="qty-controls"><button data-act="minus">−</button><strong>${q}</strong><button data-act="plus">＋</button></div>`;row.querySelector('[data-act=minus]').onclick=()=>{q<=1?cart.delete(id):cart.set(id,q-1);renderCart()};row.querySelector('[data-act=plus]').onclick=()=>{cart.set(id,q+1);renderCart()};list.appendChild(row)}el('cartEmpty').style.display=cart.size?'none':'block';el('itemCount').textContent=`${count}点`;el('grandTotal').textContent=fmt(total);renderQuickCash(total);calcChange();updateCheckoutState();publishCurrentOrder()}
 function cartTotal(){let t=0;for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(p)t+=p.price*q}return t}
 function setTenderedAmount(value){
   tenderedAmount=Math.max(0,Math.floor(Number(value)||0));
@@ -111,7 +142,7 @@ function handleTenderKey(key){
   updateTenderPreview();
 }
 function confirmTender(){setTenderedAmount(tenderedAmount);el('tenderDialog').close()}
-function setPayment(method){if(!PAYMENT_METHODS[method])return;selectedPayment=method;document.querySelectorAll('.payment-method').forEach(b=>{const on=b.dataset.payment===method;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});const cash=method==='cash';el('cashPaymentArea').hidden=!cash;el('cashlessPaymentArea').hidden=cash;el('selectedPaymentLabel').textContent=PAYMENT_METHODS[method].label;el('currentPaymentDisplay').textContent=PAYMENT_METHODS[method].label;updateCheckoutState()}
+function setPayment(method){if(!PAYMENT_METHODS[method])return;selectedPayment=method;document.querySelectorAll('.payment-method').forEach(b=>{const on=b.dataset.payment===method;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});const cash=method==='cash';el('cashPaymentArea').hidden=!cash;el('cashlessPaymentArea').hidden=cash;el('selectedPaymentLabel').textContent=PAYMENT_METHODS[method].label;el('currentPaymentDisplay').textContent=PAYMENT_METHODS[method].label;updateCheckoutState();publishCurrentOrder()}
 function updateCheckoutState(){
   const total=cartTotal();
   const ready=total>0 && (selectedPayment!=='cash' || tenderedAmount>=total);
@@ -171,6 +202,7 @@ async function checkout(){
   const summary=`${fmt(total)} / ${pm.label}<br>${items.map(i=>`${escapeHtml(i.name)} × ${i.qty}`).join('<br>')}`;
   cart.clear();tenderedAmount=0;el('tendered').value='';setPayment('cash');renderCart();await refreshStats();await refreshFulfillment();
   el('checkoutOrderNo').textContent=String(orderNo).padStart(3,'0');el('checkoutSummary').innerHTML=summary;el('checkoutDialog').showModal();
+  publishCustomerState({type:'complete',orderNo,total,paymentMethod:sale.paymentMethod,paymentLabel:sale.paymentLabel,change:sale.change,items:sale.items.map(i=>({name:i.name,qty:i.qty,subtotal:i.subtotal}))});
 }
 async function refreshStats(){
   const day=Number(el('eventDay').value);
@@ -389,8 +421,8 @@ function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':
 function toast(msg){const t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),1800)}
 function updateOnline(){el('offlineBadge').textContent=navigator.onLine?'オンライン':'オフライン';el('offlineBadge').classList.toggle('online',navigator.onLine)}
 async function init(){
-  await openDB();await seed();await loadProducts();renderCart();await refreshStats();await refreshFulfillment();
-  el('openAdmin').onclick=()=>el('adminDialog').showModal();el('addProduct').onclick=addProduct;bindTap(el('sortByCategory'),sortProductsByCategory);el('saveEdit').onclick=saveEdit;const checkoutBtn=el('checkout');checkoutBtn.onclick=handleCheckoutActivation;checkoutBtn.addEventListener('pointerup',handleCheckoutActivation,{passive:false});checkoutBtn.addEventListener('touchend',handleCheckoutActivation,{passive:false});document.addEventListener('pointerup',e=>{const b=e.target&&e.target.closest?e.target.closest('#checkout'):null;if(b)handleCheckoutActivation(e)},{capture:true,passive:false});el('clearCart').onclick=()=>{cart.clear();renderCart()};el('tendered').onclick=openTenderDialog;el('tendered').onfocus=e=>e.target.blur();
+  await openDB();try{customerChannel=new BroadcastChannel('kashima-pos-customer')}catch(_){customerChannel=null}await seed();await loadProducts();renderCart();await refreshStats();await refreshFulfillment();await loadAdVideoMeta();
+  el('openAdmin').onclick=()=>el('adminDialog').showModal();bindTap(el('openCustomerDisplay'),openCustomerDisplay);bindTap(el('previewCustomerDisplay'),openCustomerDisplay);el('adVideoFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)saveAdVideoFile(f);e.target.value=''});bindTap(el('removeAdVideo'),removeAdVideo);el('addProduct').onclick=addProduct;bindTap(el('sortByCategory'),sortProductsByCategory);el('saveEdit').onclick=saveEdit;const checkoutBtn=el('checkout');checkoutBtn.onclick=handleCheckoutActivation;checkoutBtn.addEventListener('pointerup',handleCheckoutActivation,{passive:false});checkoutBtn.addEventListener('touchend',handleCheckoutActivation,{passive:false});document.addEventListener('pointerup',e=>{const b=e.target&&e.target.closest?e.target.closest('#checkout'):null;if(b)handleCheckoutActivation(e)},{capture:true,passive:false});el('clearCart').onclick=()=>{cart.clear();renderCart()};el('tendered').onclick=openTenderDialog;el('tendered').onfocus=e=>e.target.blur();
   el('eventDay').onchange=async()=>{await refreshStats();await refreshFulfillment()};bindTap(el('refreshStats'),async()=>{await refreshStats();toast('本日の状況を更新しました')});bindTap(el('clearDaySales'),clearCurrentDaySales);el('exportCsv').onclick=exportCSV;el('exportBackup').onclick=exportBackup;bindTap(el('saveSaleEdit'),saveSaleEdit);
   el('paymentMethods').addEventListener('click',e=>{const b=e.target.closest('.payment-method');if(b)setPayment(b.dataset.payment)});setPayment('cash');
   el('tenderPad').addEventListener('click',e=>{const b=e.target.closest('[data-key]');if(b)handleTenderKey(b.dataset.key)});el('confirmTender').onclick=confirmTender;el('cancelTender').onclick=()=>el('tenderDialog').close();el('tenderExact').onclick=()=>{handleTenderKey('exact')};
@@ -399,7 +431,7 @@ async function init(){
   el('filterAll').onclick=()=>{fulfillmentPendingOnly=false;el('filterAll').classList.add('active');el('filterPending').classList.remove('active');refreshFulfillment()};
   el('closeCheckoutDialog').onclick=()=>el('checkoutDialog').close();bindTap(el('goFulfillment'),()=>{try{el('checkoutDialog').close()}catch(_){};setTimeout(()=>showView('fulfillment'),80)});
   setInterval(()=>el('clock').textContent=new Date().toLocaleString('ja-JP'),1000);updateOnline();window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=16');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
+  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=17');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
 }
 
 init();

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>鹿嶋まつり 顧客表示</title>
+  <link rel="stylesheet" href="customer.css?v=17" />
+</head>
+<body>
+  <main class="customer-shell">
+    <section id="standbyView" class="customer-view active">
+      <video id="adVideo" class="ad-video" muted playsinline autoplay loop hidden></video>
+      <div id="standbyFallback" class="standby-fallback">
+        <div class="standby-mark">KASHIMA FESTIVAL</div>
+        <h1>鹿嶋まつり</h1>
+        <p>ご注文をお待ちしています</p>
+      </div>
+      <div class="customer-brand">鹿嶋まつり イベントレジ</div>
+    </section>
+
+    <section id="orderView" class="customer-view order-view">
+      <div class="customer-headline">ご注文内容</div>
+      <div id="customerItems" class="customer-items"></div>
+      <div class="customer-total-row"><span>合計</span><strong id="customerTotal">¥0</strong></div>
+      <div class="customer-payment-row">お支払い：<strong id="customerPayment">現金</strong></div>
+    </section>
+
+    <section id="completeView" class="customer-view complete-view">
+      <div class="complete-check">✓</div>
+      <div class="complete-title">お会計ありがとうございました</div>
+      <div class="complete-order-label">受付番号</div>
+      <div id="completeOrderNo" class="complete-order-no">---</div>
+      <div id="completePayment" class="complete-payment"></div>
+      <div id="completeChange" class="complete-change"></div>
+      <div class="complete-note">商品受け渡しまでお待ちください</div>
+    </section>
+
+    <div id="connectionBadge" class="connection-badge">顧客表示</div>
+  </main>
+  <script src="customer.js?v=17"></script>
+</body>
+</html>
