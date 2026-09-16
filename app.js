@@ -431,7 +431,7 @@ async function init(){
   el('filterAll').onclick=()=>{fulfillmentPendingOnly=false;el('filterAll').classList.add('active');el('filterPending').classList.remove('active');refreshFulfillment()};
   el('closeCheckoutDialog').onclick=()=>el('checkoutDialog').close();bindTap(el('goFulfillment'),()=>{try{el('checkoutDialog').close()}catch(_){};setTimeout(()=>showView('fulfillment'),80)});
   setInterval(()=>el('clock').textContent=new Date().toLocaleString('ja-JP'),1000);updateOnline();window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=17');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
+  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=18');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
 }
 
 init();

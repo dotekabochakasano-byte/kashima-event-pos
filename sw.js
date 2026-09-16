@@ -1,5 +1,5 @@
-const CACHE='kashima-event-pos-v17';
-const ASSETS=['./','./index.html','./styles.css?v=17','./app.js?v=17','./customer.html','./customer.css?v=17','./customer.js?v=17','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
+const CACHE='kashima-event-pos-v18';
+const ASSETS=['./','./index.html','./styles.css?v=18','./app.js?v=18','./customer.html','./customer.css?v=18','./customer.js?v=18','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',event=>{
@@ -8,10 +8,25 @@ self.addEventListener('fetch',event=>{
   event.respondWith((async()=>{
     const cache=await caches.open(CACHE);
     if(event.request.mode==='navigate'){
-      const path=url.pathname.endsWith('/customer.html')?'./customer.html':'./index.html';
-      return (await cache.match(path))||(await cache.match('./'))||new Response('オフライン用画面を読み込めません',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});
+      try{
+        const fresh=await fetch(event.request);
+        if(fresh&&fresh.ok){
+          cache.put(event.request,fresh.clone()).catch(()=>{});
+          const canonical=url.pathname.endsWith('/customer.html')?'./customer.html':'./index.html';
+          cache.put(canonical,fresh.clone()).catch(()=>{});
+        }
+        return fresh;
+      }catch(_){
+        const path=url.pathname.endsWith('/customer.html')?'./customer.html':'./index.html';
+        return (await cache.match(path))||(await cache.match('./'))||new Response('オフライン用画面を読み込めません',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});
+      }
     }
-    const hit=await cache.match(event.request,{ignoreSearch:true});if(hit)return hit;
-    return new Response('',{status:204});
+    try{
+      const fresh=await fetch(event.request);
+      if(fresh&&fresh.ok)cache.put(event.request,fresh.clone()).catch(()=>{});
+      return fresh;
+    }catch(_){
+      return (await cache.match(event.request,{ignoreSearch:true}))||new Response('',{status:204});
+    }
   })());
 });
