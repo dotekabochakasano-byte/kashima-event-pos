@@ -101,8 +101,8 @@ async function deleteStoredAdVideo(meta){
 }
 async function saveAdVideoFile(file){
   if(!file)return;
-  const limit=150*1024*1024;
-  if(file.size>limit){alert('広告動画は150MB以下にしてください。');return}
+  const limit=200*1024*1024;
+  if(file.size>limit){alert('広告動画は200MB以下にしてください。');return}
   const nameEl=el('adVideoName');
   const oldMeta=await getOne('settings','adVideo').catch(()=>null);
   if(nameEl)nameEl.textContent='広告動画：保存準備中…';
@@ -477,7 +477,7 @@ async function init(){
   el('filterAll').onclick=()=>{fulfillmentPendingOnly=false;el('filterAll').classList.add('active');el('filterPending').classList.remove('active');refreshFulfillment()};
   el('closeCheckoutDialog').onclick=()=>el('checkoutDialog').close();bindTap(el('goFulfillment'),()=>{try{el('checkoutDialog').close()}catch(_){};setTimeout(()=>showView('fulfillment'),80)});
   setInterval(()=>el('clock').textContent=new Date().toLocaleString('ja-JP'),1000);updateOnline();window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=26');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
+  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=27');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
 }
 
 init();
