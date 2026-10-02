@@ -7,12 +7,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>鹿島ハイツ 鹿島神宮駅前店 顧客表示</title>
-  <link rel="stylesheet" href="customer.css?v=23" />
+  <link rel="stylesheet" href="customer.css?v=24" />
 </head>
 <body>
   <main class="customer-shell">
     <section id="standbyView" class="customer-view active">
-      <video id="adVideo" class="ad-video" muted playsinline autoplay loop hidden></video>
+      <video id="adVideo" class="ad-video" muted playsinline webkit-playsinline autoplay loop preload="auto" hidden></video>
       <div id="standbyFallback" class="standby-fallback">
         <div class="standby-mark">KASHIMA HEIGHTS</div>
         <h1><span class="standby-title-small">鹿島ハイツ</span><span class="standby-title-main">鹿島神宮駅前店</span></h1>
@@ -22,12 +22,30 @@
 
     <section id="orderView" class="customer-view order-view">
       <div class="customer-headline">ご注文内容</div>
-      <div id="customerItems" class="customer-items"></div>
-      <div class="customer-total-row"><span>合計</span><strong id="customerTotal">¥0</strong></div>
-      <div class="customer-payment-row">お支払い：<strong id="customerPayment">現金</strong></div>
-      <div id="customerCashInfo" class="customer-cash-info" hidden>
-        <div class="customer-cash-box"><span>お預かり</span><strong id="customerTendered">¥0</strong></div>
-        <div class="customer-cash-box"><span>お釣り</span><strong id="customerChange">¥0</strong></div>
+      <div class="order-main-layout">
+        <div class="order-list-pane">
+          <div id="customerItems" class="customer-items"></div>
+        </div>
+        <aside class="order-side-pane">
+          <div class="customer-total-row"><span>合計</span><strong id="customerTotal">¥0</strong></div>
+          <div class="customer-payment-row">お支払い：<strong id="customerPayment">現金</strong></div>
+          <div id="customerCashInfo" class="customer-cash-info" hidden>
+            <div class="customer-cash-box"><span>お預かり</span><strong id="customerTendered">¥0</strong></div>
+            <div class="customer-cash-box"><span>お釣り</span><strong id="customerChange">¥0</strong></div>
+          </div>
+          <div id="customerQrInfo" class="customer-qr-info" hidden>
+            <div class="customer-qr-header">QRコード決済</div>
+            <div class="customer-qr-method" id="customerQrMethod">PayPay / 楽天ペイ / d払い / au PAY</div>
+            <img class="customer-qr-logo-strip" src="./assets/payment-logos.png" alt="対応QR決済ブランド" />
+            <div class="customer-qr-card">
+              <img id="customerQrImage" class="customer-qr-image" src="./assets/payment-qr.png" alt="決済用QRコード" />
+            </div>
+            <div class="customer-qr-note">
+              <p>こちらのQRコードを、スマートフォンの決済画面からカメラで読み取ってください。</p>
+              <p>決済完了まで、画面を閉じずにお待ちください。</p>
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
 
@@ -43,6 +61,6 @@
 
     <div id="connectionBadge" class="connection-badge">顧客表示</div>
   </main>
-  <script src="customer.js?v=23"></script>
+  <script src="customer.js?v=24"></script>
 </body>
 </html>
