@@ -5,11 +5,21 @@ const el=id=>document.getElementById(id);
 function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('settings'))d.createObjectStore('settings',{keyPath:'key'});};req.onsuccess=()=>{db=req.result;resolve(db)};req.onerror=()=>reject(req.error);});}
 function getSetting(key){return new Promise((res,rej)=>{const r=db.transaction('settings').objectStore('settings').get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 function show(name){['standbyView','orderView','completeView'].forEach(id=>el(id).classList.remove('active'));el(name).classList.add('active');}
+function fitAdVideo(){
+  const video=el('adVideo'); const host=el('standbyView');
+  if(!video||!host||video.hidden)return;
+  const r=host.getBoundingClientRect();
+  const vw=Math.max(1,r.width), vh=Math.max(1,r.height);
+  const iw=video.videoWidth||16, ih=video.videoHeight||9;
+  const scale=Math.min(vw/iw,vh/ih);
+  video.style.width=Math.max(1,Math.floor(iw*scale))+'px';
+  video.style.height=Math.max(1,Math.floor(ih*scale))+'px';
+}
 async function loadAdVideo(){
   try{
     const rec=await getSetting('adVideo'); const video=el('adVideo'); const fallback=el('standbyFallback');
     if(currentVideoUrl){URL.revokeObjectURL(currentVideoUrl);currentVideoUrl=null}
-    if(rec&&rec.blob){currentVideoUrl=URL.createObjectURL(rec.blob);video.src=currentVideoUrl;video.hidden=false;fallback.style.display='none';try{await video.play()}catch(_){} }
+    if(rec&&rec.blob){currentVideoUrl=URL.createObjectURL(rec.blob);video.src=currentVideoUrl;video.hidden=false;fallback.style.display='none';video.addEventListener('loadedmetadata',fitAdVideo,{once:true});try{await video.play()}catch(_){} fitAdVideo(); }
     else{video.pause();video.removeAttribute('src');video.load();video.hidden=true;fallback.style.display='flex'}
   }catch(e){console.warn(e)}
 }
@@ -43,5 +53,6 @@ function handleState(state){if(!state)return;if(state.type==='complete')renderCo
 function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 let bc=null;try{bc=new BroadcastChannel('kashima-pos-customer');bc.onmessage=e=>handleState(e.data)}catch(_){ }
 window.addEventListener('storage',e=>{if(e.key==='kashimaCustomerState'&&e.newValue){try{handleState(JSON.parse(e.newValue))}catch(_){}}});
+window.addEventListener('resize',fitAdVideo);window.addEventListener('orientationchange',()=>setTimeout(fitAdVideo,150));if(window.visualViewport)window.visualViewport.addEventListener('resize',fitAdVideo);
 setInterval(()=>{try{const s=localStorage.getItem('kashimaCustomerState');if(s){const o=JSON.parse(s);if(o._ts&&(!window._lastStateTs||o._ts>window._lastStateTs)){window._lastStateTs=o._ts;handleState(o)}}}catch(_){}},500);
 (async()=>{await openDB();await loadAdVideo();try{const s=localStorage.getItem('kashimaCustomerState');if(s)handleState(JSON.parse(s))}catch(_){}})();
