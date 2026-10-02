@@ -35,16 +35,32 @@ function keepVideoLooping(video){
     }
   });
 }
+async function readAdVideoBlob(rec){
+  if(!rec)return null;
+  // Ver.0.25以前の1レコード保存にも互換対応
+  if(rec.blob)return rec.blob;
+  if(rec.storage==='chunks'&&Number(rec.chunkCount)>0){
+    const parts=[];
+    for(let i=0;i<Number(rec.chunkCount);i++){
+      const chunk=await getSetting(`adVideoChunk:${i}`);
+      if(!chunk||!chunk.blob)throw new Error(`広告動画データ ${i+1}/${rec.chunkCount} が見つかりません`);
+      parts.push(chunk.blob);
+    }
+    return new Blob(parts,{type:rec.type||'video/mp4'});
+  }
+  return null;
+}
 async function loadAdVideo(){
   const video=el('adVideo'); const fallback=el('standbyFallback');
   if(!video||!fallback)return;
   try{
     const rec=await getSetting('adVideo');
+    const blob=await readAdVideoBlob(rec);
     if(currentVideoUrl){URL.revokeObjectURL(currentVideoUrl);currentVideoUrl=null}
     clearTimeout(videoRetryTimer);
     video.onloadeddata=null; video.oncanplay=null; video.onerror=null; video.onstalled=null; video.onabort=null;
-    if(rec&&rec.blob){
-      currentVideoUrl=URL.createObjectURL(rec.blob);
+    if(blob){
+      currentVideoUrl=URL.createObjectURL(blob);
       video.muted=true; video.defaultMuted=true; video.autoplay=true; video.loop=true; video.playsInline=true;
       video.setAttribute('muted',''); video.setAttribute('autoplay',''); video.setAttribute('loop',''); video.setAttribute('playsinline',''); video.setAttribute('webkit-playsinline','');
       video.preload='auto';
@@ -53,16 +69,16 @@ async function loadAdVideo(){
       video.hidden=false;
       fallback.style.display='none';
       video.onerror=()=>resetVideoState(true);
-      video.onstalled=()=>{videoRetryTimer=setTimeout(()=>tryPlayVideo(video),400)};
+      video.onstalled=()=>{videoRetryTimer=setTimeout(()=>tryPlayVideo(video),500)};
       video.onabort=()=>resetVideoState(true);
       video.oncanplay=()=>{tryPlayVideo(video);};
       video.onloadeddata=async()=>{
         const ok=await tryPlayVideo(video);
-        if(!ok){videoRetryTimer=setTimeout(async()=>{const retryOk=await tryPlayVideo(video); if(!retryOk)resetVideoState(true);},500);}
+        if(!ok){videoRetryTimer=setTimeout(async()=>{const retryOk=await tryPlayVideo(video); if(!retryOk)resetVideoState(true);},650);}
       };
       video.load();
       const started=await tryPlayVideo(video);
-      if(!started){videoRetryTimer=setTimeout(async()=>{const retryOk=await tryPlayVideo(video); if(!retryOk)resetVideoState(true);},500);}
+      if(!started){videoRetryTimer=setTimeout(async()=>{const retryOk=await tryPlayVideo(video); if(!retryOk)resetVideoState(true);},650);}
     }else{
       if(video){try{video.pause();}catch(_){ } video.removeAttribute('src'); video.load();}
       resetVideoState(true);
@@ -90,9 +106,12 @@ function renderOrder(state){
   }
   if(qrInfo){
     qrInfo.hidden=!isQr;
-    if(isQr){
-      el('customerQrMethod').textContent=`${state.paymentLabel||'QRコード決済'} に対応しています`;
-    }
+    if(isQr)el('customerQrMethod').textContent=`${state.paymentLabel||'QRコード決済'} に対応しています`;
+  }
+  const orderView=el('orderView');
+  if(orderView){
+    orderView.classList.toggle('qr-mode',isQr);
+    orderView.classList.toggle('standard-mode',!isQr);
   }
   show('orderView');
 }

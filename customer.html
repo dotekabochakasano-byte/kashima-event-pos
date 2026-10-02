@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>鹿島ハイツ 鹿島神宮駅前店 顧客表示</title>
-  <link rel="stylesheet" href="customer.css?v=25" />
+  <link rel="stylesheet" href="customer.css?v=26" />
 </head>
 <body>
   <main class="customer-shell">
@@ -27,12 +27,6 @@
           <div id="customerItems" class="customer-items"></div>
         </div>
         <aside class="order-side-pane">
-          <div class="customer-total-row"><span>合計</span><strong id="customerTotal">¥0</strong></div>
-          <div class="customer-payment-row">お支払い：<strong id="customerPayment">現金</strong></div>
-          <div id="customerCashInfo" class="customer-cash-info" hidden>
-            <div class="customer-cash-box"><span>お預かり</span><strong id="customerTendered">¥0</strong></div>
-            <div class="customer-cash-box"><span>お釣り</span><strong id="customerChange">¥0</strong></div>
-          </div>
           <div id="customerQrInfo" class="customer-qr-info" hidden>
             <div class="customer-qr-header">QRコード決済</div>
             <div class="customer-qr-method" id="customerQrMethod">PayPay / 楽天ペイ / d払い / au PAY</div>
@@ -43,6 +37,14 @@
             <div class="customer-qr-note">
               <p>こちらのQRコードを、スマートフォンの決済画面からカメラで読み取ってください。</p>
               <p>決済完了まで、画面を閉じずにお待ちください。</p>
+            </div>
+          </div>
+          <div class="customer-summary-block">
+            <div class="customer-total-row"><span>合計</span><strong id="customerTotal">¥0</strong></div>
+            <div class="customer-payment-row">お支払い：<strong id="customerPayment">現金</strong></div>
+            <div id="customerCashInfo" class="customer-cash-info" hidden>
+              <div class="customer-cash-box"><span>お預かり</span><strong id="customerTendered">¥0</strong></div>
+              <div class="customer-cash-box"><span>お釣り</span><strong id="customerChange">¥0</strong></div>
             </div>
           </div>
         </aside>
@@ -61,6 +63,6 @@
 
     <div id="connectionBadge" class="connection-badge">顧客表示</div>
   </main>
-  <script src="customer.js?v=25"></script>
+  <script src="customer.js?v=26"></script>
 </body>
 </html>

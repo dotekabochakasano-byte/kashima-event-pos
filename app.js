@@ -80,16 +80,61 @@ function openCustomerDisplay(){
 }
 async function loadAdVideoMeta(){
   const nameEl=el('adVideoName');if(!nameEl)return;
-  try{const rec=await getOne('settings','adVideo');nameEl.textContent=rec&&rec.name?`広告動画：${rec.name}`:'広告動画：未設定'}catch(_){nameEl.textContent='広告動画：未設定'}
+  try{
+    const rec=await getOne('settings','adVideo');
+    if(rec&&rec.name){
+      const mb=rec.size?`（${Math.round(rec.size/1024/1024)}MB）`:'';
+      nameEl.textContent=`広告動画：${rec.name}${mb}`;
+    }else nameEl.textContent='広告動画：未設定';
+  }catch(_){nameEl.textContent='広告動画：未設定'}
+}
+async function deleteStoredAdVideo(meta){
+  try{
+    const rec=meta||await getOne('settings','adVideo');
+    if(rec&&rec.storage==='chunks'&&Number(rec.chunkCount)>0){
+      for(let i=0;i<Number(rec.chunkCount);i++){
+        try{await del('settings',`adVideoChunk:${i}`)}catch(_){ }
+      }
+    }
+    await del('settings','adVideo');
+  }catch(_){ }
 }
 async function saveAdVideoFile(file){
   if(!file)return;
-  if(file.size>150*1024*1024){toast('動画は150MB以下を推奨します');return}
-  try{await put('settings',{key:'adVideo',name:file.name,type:file.type||'video/mp4',size:file.size,updatedAt:new Date().toISOString(),blob:file});await loadAdVideoMeta();publishCustomerState({type:'ad-updated'});toast('広告動画を保存しました')}catch(e){console.error(e);alert('広告動画を保存できませんでした。\n'+(e&&e.message?e.message:String(e)))}
+  const limit=150*1024*1024;
+  if(file.size>limit){alert('広告動画は150MB以下にしてください。');return}
+  const nameEl=el('adVideoName');
+  const oldMeta=await getOne('settings','adVideo').catch(()=>null);
+  if(nameEl)nameEl.textContent='広告動画：保存準備中…';
+  const chunkSize=4*1024*1024;
+  const chunkCount=Math.ceil(file.size/chunkSize);
+  try{
+    // iPad/Safariで大きな動画を1つのBlobとして保存すると失敗することがあるため、4MBずつ保存する。
+    // 容量を二重に使わないよう、既存動画を削除してから新しい動画を保存する。
+    await deleteStoredAdVideo(oldMeta);
+    for(let i=0;i<chunkCount;i++){
+      const blob=file.slice(i*chunkSize,Math.min(file.size,(i+1)*chunkSize),file.type||'video/mp4');
+      await put('settings',{key:`adVideoChunk:${i}`,index:i,blob});
+      if(nameEl){const pct=Math.round(((i+1)/chunkCount)*100);nameEl.textContent=`広告動画：保存中… ${pct}%`}
+    }
+    await put('settings',{key:'adVideo',name:file.name,type:file.type||'video/mp4',size:file.size,updatedAt:new Date().toISOString(),storage:'chunks',chunkCount});
+    const saved=await getOne('settings','adVideo');
+    if(!saved||saved.name!==file.name||Number(saved.chunkCount)!==chunkCount)throw new Error('動画の保存確認に失敗しました');
+    await loadAdVideoMeta();
+    publishCustomerState({type:'ad-updated'});
+    toast('広告動画を保存しました');
+  }catch(e){
+    console.error(e);
+    for(let i=0;i<chunkCount;i++){try{await del('settings',`adVideoChunk:${i}`)}catch(_){ }}
+    try{await del('settings','adVideo')}catch(_){ }
+    await loadAdVideoMeta();
+    alert('広告動画を保存できませんでした。\n'+(e&&e.message?e.message:String(e))+'\n\niPadの空き容量を確認して、もう一度お試しください。');
+  }
 }
 async function removeAdVideo(){
   if(!confirm('広告動画を削除しますか？'))return;
-  await del('settings','adVideo');await loadAdVideoMeta();publishCustomerState({type:'ad-updated'});toast('広告動画を削除しました')
+  const meta=await getOne('settings','adVideo').catch(()=>null);
+  await deleteStoredAdVideo(meta);await loadAdVideoMeta();publishCustomerState({type:'ad-updated'});toast('広告動画を削除しました')
 }
 
 function renderProducts(){
@@ -432,7 +477,7 @@ async function init(){
   el('filterAll').onclick=()=>{fulfillmentPendingOnly=false;el('filterAll').classList.add('active');el('filterPending').classList.remove('active');refreshFulfillment()};
   el('closeCheckoutDialog').onclick=()=>el('checkoutDialog').close();bindTap(el('goFulfillment'),()=>{try{el('checkoutDialog').close()}catch(_){};setTimeout(()=>showView('fulfillment'),80)});
   setInterval(()=>el('clock').textContent=new Date().toLocaleString('ja-JP'),1000);updateOnline();window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=25');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
+  if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.register('./sw.js?v=26');if(navigator.onLine){try{await reg.update()}catch(_){}}}catch(e){console.warn('SW register failed',e)}}
 }
 
 init();
