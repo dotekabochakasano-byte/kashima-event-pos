@@ -1,4 +1,5 @@
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;width:100%;height:100%;background:#020617;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;color:#fff;overflow:hidden}
 .customer-shell{position:fixed;inset:0;background:#020617}
 .customer-view{position:absolute;inset:0;display:none}
@@ -49,4 +50,48 @@ html,body{margin:0;width:100%;height:100%;background:#020617;font-family:-apple-
   .order-main-layout{grid-template-columns:1fr;gap:18px;overflow:auto}
   .customer-items{padding-right:0}
   .customer-qr-info{margin-top:0}
+}
+
+
+/* Ver.0.25: QR/現金表示の厳密な切替と、全体が画面内に収まるレスポンシブ調整 */
+.customer-cash-info[hidden],.customer-qr-info[hidden]{display:none!important}
+.order-view{padding:2.8vh 3.2vw 3.2vh;overflow:hidden}
+.customer-headline{font-size:clamp(32px,4.0vw,64px);padding-bottom:12px}
+.order-main-layout{grid-template-columns:minmax(0,1.18fr) minmax(360px,.82fr);gap:1.8vw;min-height:0;padding-top:1.5vh;overflow:hidden}
+.order-list-pane{overflow:hidden}
+.customer-items{gap:7px;overflow:auto;max-height:100%;padding-right:.6vw}
+.customer-item{font-size:clamp(22px,2.45vw,42px);padding:7px 0;gap:14px}
+.order-side-pane{gap:8px;overflow:hidden;justify-content:flex-start}
+.customer-total-row{padding-top:10px;font-size:clamp(28px,3.0vw,48px)}
+.customer-total-row strong{font-size:clamp(50px,6.1vw,92px)}
+.customer-payment-row{font-size:clamp(20px,2vw,31px);margin-top:0}
+.customer-cash-info{gap:10px;margin-top:4px}
+.customer-cash-box{padding:14px 16px;font-size:clamp(17px,1.6vw,25px)}
+.customer-cash-box strong{font-size:clamp(25px,2.5vw,40px)}
+.customer-qr-info{margin-top:4px;padding:12px 14px 14px;border-radius:22px;gap:7px;min-height:0;overflow:hidden}
+.customer-qr-header{font-size:clamp(20px,1.8vw,30px)}
+.customer-qr-method{font-size:clamp(17px,1.55vw,25px)}
+.customer-qr-logo-strip{width:min(100%,520px);max-height:6.5vh;min-height:0;padding:4px 8px;border-radius:10px}
+.customer-qr-card{width:min(100%,460px);padding:9px;border-radius:20px;min-height:0;max-height:34vh}
+.customer-qr-image{width:auto;height:auto;max-width:100%;max-height:31vh;object-fit:contain}
+.customer-qr-note{gap:3px;font-size:clamp(15px,1.25vw,21px);line-height:1.35}
+@media (max-height: 760px){
+  .order-view{padding-top:2vh;padding-bottom:2vh}
+  .customer-headline{font-size:clamp(28px,3.4vw,52px);padding-bottom:8px}
+  .customer-item{font-size:clamp(19px,2.1vw,34px);padding:5px 0}
+  .customer-total-row strong{font-size:clamp(42px,5.2vw,72px)}
+  .customer-qr-info{padding:9px 11px 10px;gap:5px}
+  .customer-qr-logo-strip{max-height:5.5vh}
+  .customer-qr-card{max-height:29vh}
+  .customer-qr-image{max-height:26vh}
+  .customer-qr-note{font-size:clamp(13px,1.05vw,18px)}
+}
+@media (max-width: 1100px){
+  .order-main-layout{grid-template-columns:1fr;overflow:auto}
+  .order-view{overflow:auto}
+  .order-list-pane{overflow:visible}
+  .customer-items{overflow:visible;max-height:none}
+  .order-side-pane{overflow:visible}
+  .customer-qr-card{max-height:none}
+  .customer-qr-image{max-height:min(42vh,380px)}
 }

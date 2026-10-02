@@ -25,6 +25,16 @@ async function tryPlayVideo(video){
     return false;
   }
 }
+function keepVideoLooping(video){
+  if(!video)return;
+  video.onended=()=>{try{video.currentTime=0}catch(_){ } tryPlayVideo(video)};
+  video.addEventListener('pause',()=>{
+    if(!video.hidden && !video.ended && document.visibilityState==='visible'){
+      clearTimeout(videoRetryTimer);
+      videoRetryTimer=setTimeout(()=>tryPlayVideo(video),350);
+    }
+  });
+}
 async function loadAdVideo(){
   const video=el('adVideo'); const fallback=el('standbyFallback');
   if(!video||!fallback)return;
@@ -38,6 +48,7 @@ async function loadAdVideo(){
       video.muted=true; video.defaultMuted=true; video.autoplay=true; video.loop=true; video.playsInline=true;
       video.setAttribute('muted',''); video.setAttribute('autoplay',''); video.setAttribute('loop',''); video.setAttribute('playsinline',''); video.setAttribute('webkit-playsinline','');
       video.preload='auto';
+      keepVideoLooping(video);
       video.src=currentVideoUrl;
       video.hidden=false;
       fallback.style.display='none';
