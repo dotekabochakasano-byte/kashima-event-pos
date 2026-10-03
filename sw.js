@@ -1,5 +1,5 @@
-const CACHE='kashima-event-pos-v27';
-const ASSETS=['./','./index.html','./styles.css?v=27','./app.js?v=27','./customer.html','./customer.css?v=27','./customer.js?v=27','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./assets/payment-qr.png','./assets/payment-logos.png'];
+const CACHE='kashima-event-pos-v28';
+const ASSETS=['./','./index.html','./styles.css?v=28','./app.js?v=28','./customer.html','./customer.css?v=28','./customer.js?v=28','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./assets/payment-qr.png','./assets/payment-logos.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',event=>{

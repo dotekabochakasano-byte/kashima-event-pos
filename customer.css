@@ -151,3 +151,86 @@ html,body{margin:0;width:100%;height:100%;background:#020617;font-family:-apple-
   #orderView.qr-mode .customer-qr-info{width:100%;max-height:none}
   #orderView.qr-mode .customer-qr-card{width:min(30vw,30vh,280px);height:min(30vw,30vh,280px)}
 }
+
+
+/* Ver.0.28: 屋外向け高視認性ライトテーマ（注文・金額表示のみ） */
+#orderView.order-view{
+  background:#ffffff;
+  color:#111111;
+}
+#orderView .customer-headline{
+  color:#000000;
+  border-bottom-color:#111111;
+  text-shadow:none;
+}
+#orderView .customer-item{
+  color:#111111;
+  border-bottom-color:#d1d5db;
+}
+#orderView .customer-item-name,
+#orderView .customer-item-sub{
+  color:#000000;
+}
+#orderView .customer-item-qty{
+  color:#374151;
+}
+#orderView .customer-total-row{
+  color:#111111;
+  border-top-color:#111111;
+}
+#orderView .customer-total-row strong{
+  color:#000000;
+  text-shadow:none;
+}
+#orderView .customer-payment-row{
+  color:#374151;
+}
+#orderView .customer-payment-row strong{
+  color:#000000;
+}
+#orderView .customer-cash-box{
+  background:#f3f4f6;
+  border:2px solid #9ca3af;
+  color:#374151;
+  box-shadow:none;
+}
+#orderView .customer-cash-box strong{
+  color:#000000;
+}
+#orderView .customer-qr-info{
+  background:#f5f7fa;
+  border:2px solid #9ca3af;
+  box-shadow:0 6px 16px rgba(0,0,0,.12);
+  color:#111111;
+}
+#orderView .customer-qr-header{
+  color:#0b2a5b;
+}
+#orderView .customer-qr-method{
+  color:#111111;
+}
+#orderView .customer-qr-logo-strip{
+  background:#ffffff;
+  border:1px solid #d1d5db;
+}
+#orderView .customer-qr-card{
+  background:#ffffff;
+  border:2px solid #111111;
+  box-shadow:none;
+}
+#orderView .customer-qr-note{
+  color:#111111;
+  font-weight:700;
+}
+#orderView .connection-badge{
+  background:#e5e7eb;
+  color:#111111;
+  border:1px solid #9ca3af;
+  backdrop-filter:none;
+}
+
+/* QR決済時は金額・QR・案内文を黒系で最大コントラスト */
+#orderView.qr-mode .customer-summary-block,
+#orderView.standard-mode .customer-summary-block{
+  color:#111111;
+}
